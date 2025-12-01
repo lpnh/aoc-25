@@ -35,14 +35,50 @@ fn solution_part_1(input: &str) -> Result<i32> {
 }
 
 #[cfg(feature = "part_2")]
-fn solution_part_2(input: &str) -> Result<String> {
-    let result = input
-        .lines()
-        .next()
-        .context("missing first line")?
-        .replace("input", "output");
+fn solution_part_2(input: &str) -> Result<i32> {
+    let mut dial = 50;
+    let mut zero_while_rotation = 0;
 
-    Ok(result)
+    let rotations = input
+        .lines()
+        .map(|l| {
+            let mut rotation = l.chars();
+            let direction = rotation.next().context("empty line")?;
+            let distance = rotation.collect::<String>().parse::<i32>()?;
+            Ok((direction, distance))
+        })
+        .collect::<Result<Vec<(char, i32)>>>()?;
+
+    let pointings: Vec<i32> = rotations
+        .iter()
+        .map(|(direction, distance)| {
+            zero_while_rotation += count_rotations(*distance);
+            let dist_rem = distance % 100;
+
+            if *direction == 'L' {
+                if dial != 0 && dial - dist_rem < 0 {
+                    zero_while_rotation += 1;
+                }
+                dial += 100 - dist_rem;
+            } else if *direction == 'R' {
+                if dial + dist_rem > 100 {
+                    zero_while_rotation += 1;
+                }
+                dial += dist_rem;
+            }
+
+            dial %= 100;
+            dial
+        })
+        .collect();
+
+    let at_zero_count = pointings.iter().filter(|i| **i == 0).count() as i32;
+
+    Ok(at_zero_count + zero_while_rotation)
+}
+
+fn count_rotations(dist: i32) -> i32 {
+    if dist > 100 { dist / 100 } else { 0 }
 }
 
 fn main() -> Result<()> {
@@ -82,10 +118,19 @@ L82
 #[test]
 fn test_part_2() -> Result<()> {
     const EXAMPLE_INPUT_2: &str = "\
-Part Two example input
+L68
+L30
+R48
+L5
+R60
+L55
+L1
+L99
+R14
+L82
 ";
 
-    const EXAMPLE_OUTPUT_2: &str = "Part Two example output";
+    const EXAMPLE_OUTPUT_2: i32 = 6;
 
     assert_eq!(solution_part_2(EXAMPLE_INPUT_2)?, EXAMPLE_OUTPUT_2);
 
