@@ -3,14 +3,35 @@ use anyhow::{Context, Result};
 const PUZZLE_INPUT: &str = include_str!("../../puzzle_input/day_01.txt");
 
 #[cfg(feature = "part_1")]
-fn solution_part_1(input: &str) -> Result<String> {
-    let result = input
-        .lines()
-        .next()
-        .context("missing first line")?
-        .replace("input", "output");
+fn solution_part_1(input: &str) -> Result<i32> {
+    let mut dial = 50;
 
-    Ok(result)
+    let rotations = input
+        .lines()
+        .map(|l| {
+            let mut rotation = l.chars();
+            let direction = rotation.next().context("empty line")?;
+            let distance = rotation.collect::<String>().parse::<i32>()?;
+            Ok((direction, distance))
+        })
+        .collect::<Result<Vec<(char, i32)>>>()?;
+
+    let pointings: Vec<i32> = rotations
+        .iter()
+        .map(|(direction, distance)| {
+            if *direction == 'L' {
+                dial += 100 - (distance % 100);
+            } else if *direction == 'R' {
+                dial += distance;
+            }
+
+            dial % 100
+        })
+        .collect();
+
+    let at_zero_count = pointings.iter().filter(|i| **i == 0).count() as i32;
+
+    Ok(at_zero_count)
 }
 
 #[cfg(feature = "part_2")]
@@ -38,10 +59,19 @@ fn main() -> Result<()> {
 #[test]
 fn test_part_1() -> Result<()> {
     const EXAMPLE_INPUT_1: &str = "\
-Part One example input
+L68
+L30
+R48
+L5
+R60
+L55
+L1
+L99
+R14
+L82
 ";
 
-    const EXAMPLE_OUTPUT_1: &str = "Part One example output";
+    const EXAMPLE_OUTPUT_1: i32 = 3;
 
     assert_eq!(solution_part_1(EXAMPLE_INPUT_1)?, EXAMPLE_OUTPUT_1);
 
