@@ -35,14 +35,33 @@ fn solution_part_1(input: &str) -> Result<usize> {
 }
 
 #[cfg(feature = "part_2")]
-fn solution_part_2(input: &str) -> Result<String> {
-    let result = input
-        .lines()
-        .next()
-        .context("missing first line")?
-        .replace("input", "output");
+fn solution_part_2(input: &str) -> Result<usize> {
+    let ranges: Vec<Range<_>> = input
+        .trim()
+        .split(',')
+        .collect::<Vec<_>>()
+        .iter()
+        .map(|r| r.split('-').collect::<Vec<_>>())
+        .map(|t| Range {
+            start: t[0],
+            end: t[1],
+        })
+        .collect();
 
-    Ok(result)
+    let res = ranges
+        .iter()
+        .map(|r| -> Result<usize> {
+            let start = r.start.parse::<usize>().context("failed to parse start")?;
+            let end = r.end.parse::<usize>().context("failed to parse end")?;
+            Ok((start..=end)
+                .filter(|n| is_invalid_id_part_2(n.to_string()))
+                .sum::<usize>())
+        })
+        .collect::<Result<Vec<_>>>()?
+        .iter()
+        .sum();
+
+    Ok(res)
 }
 
 fn filter_even_decimal_ranges(start: String, end: String, ranges: &mut Vec<Range<String>>) {
@@ -94,6 +113,20 @@ fn is_invalid_id(n: String) -> bool {
     first_half == second_half
 }
 
+fn is_invalid_id_part_2(n: String) -> bool {
+    let chars: Vec<char> = n.chars().collect();
+
+    for i in 1..=n.len() / 2 {
+        let pattern = &n[..i];
+        let mut chunks = chars.chunks(i);
+        if chunks.all(|c| c.iter().collect::<String>().eq(pattern)) {
+            return true;
+        }
+    }
+
+    false
+}
+
 fn main() -> Result<()> {
     #[cfg(feature = "part_1")]
     println!("Part One: {}", solution_part_1(PUZZLE_INPUT)?);
@@ -122,10 +155,10 @@ fn test_part_1() -> Result<()> {
 #[test]
 fn test_part_2() -> Result<()> {
     const EXAMPLE_INPUT_2: &str = "\
-Part Two example input
+11-22,95-115,998-1012,1188511880-1188511890,222220-222224,1698522-1698528,446443-446449,38593856-38593862,565653-565659,824824821-824824827,2121212118-2121212124
 ";
 
-    const EXAMPLE_OUTPUT_2: &str = "Part Two example output";
+    const EXAMPLE_OUTPUT_2: usize = 4174379265;
 
     assert_eq!(solution_part_2(EXAMPLE_INPUT_2)?, EXAMPLE_OUTPUT_2);
 
