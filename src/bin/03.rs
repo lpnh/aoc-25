@@ -3,14 +3,15 @@ use anyhow::{Context, Result};
 const PUZZLE_INPUT: &str = include_str!("../../puzzle_input/day_03.txt");
 
 #[cfg(feature = "part_1")]
-fn solution_part_1(input: &str) -> Result<String> {
-    let result = input
+fn solution_part_1(input: &str) -> Result<i32> {
+    let total_joltage = input
         .lines()
-        .next()
-        .context("missing first line")?
-        .replace("input", "output");
+        .map(max_joltage)
+        .collect::<Result<Vec<_>>>()?
+        .into_iter()
+        .sum::<i32>();
 
-    Ok(result)
+    Ok(total_joltage)
 }
 
 #[cfg(feature = "part_2")]
@@ -22,6 +23,24 @@ fn solution_part_2(input: &str) -> Result<String> {
         .replace("input", "output");
 
     Ok(result)
+}
+
+fn max_joltage(bank: &str) -> Result<i32> {
+    let batteries: Vec<char> = bank.chars().collect();
+    let mut max_joltage = 0;
+
+    for i in 0..bank.len() {
+        for j in 1 + i..bank.len() {
+            let joltage = format!("{}{}", batteries[i], batteries[j])
+                .parse::<i32>()
+                .context("failed to parse joltage")?;
+            if joltage > max_joltage {
+                max_joltage = joltage
+            }
+        }
+    }
+
+    Ok(max_joltage)
 }
 
 fn main() -> Result<()> {
@@ -38,10 +57,13 @@ fn main() -> Result<()> {
 #[test]
 fn test_part_1() -> Result<()> {
     const EXAMPLE_INPUT_1: &str = "\
-Part One example input
+987654321111111
+811111111111119
+234234234234278
+818181911112111
 ";
 
-    const EXAMPLE_OUTPUT_1: &str = "Part One example output";
+    const EXAMPLE_OUTPUT_1: i32 = 357;
 
     assert_eq!(solution_part_1(EXAMPLE_INPUT_1)?, EXAMPLE_OUTPUT_1);
 
