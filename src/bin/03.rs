@@ -15,14 +15,15 @@ fn solution_part_1(input: &str) -> Result<i32> {
 }
 
 #[cfg(feature = "part_2")]
-fn solution_part_2(input: &str) -> Result<String> {
-    let result = input
+fn solution_part_2(input: &str) -> Result<u64> {
+    let total_jotage = input
         .lines()
-        .next()
-        .context("missing first line")?
-        .replace("input", "output");
+        .map(max_joltage_part_2)
+        .collect::<Result<Vec<_>>>()?
+        .iter()
+        .sum::<u64>();
 
-    Ok(result)
+    Ok(total_jotage)
 }
 
 fn max_joltage(bank: &str) -> Result<i32> {
@@ -41,6 +42,34 @@ fn max_joltage(bank: &str) -> Result<i32> {
     }
 
     Ok(max_joltage)
+}
+
+fn max_joltage_part_2(bank: &str) -> Result<u64> {
+    let batteries: Vec<char> = bank.chars().collect();
+    let mut max_joltages = Vec::new();
+
+    let mut remaining_batteries = batteries.len() - 12;
+
+    for joltage in &batteries {
+        while remaining_batteries > 0
+            && let Some(last_joltage) = max_joltages.last()
+        {
+            if joltage > last_joltage {
+                max_joltages.pop();
+                remaining_batteries -= 1;
+            } else {
+                break;
+            }
+        }
+
+        max_joltages.push(*joltage);
+    }
+
+    max_joltages.truncate(12);
+
+    let max_joltage_u64 = max_joltages.iter().collect::<String>().parse::<u64>()?;
+
+    Ok(max_joltage_u64)
 }
 
 fn main() -> Result<()> {
@@ -74,10 +103,13 @@ fn test_part_1() -> Result<()> {
 #[test]
 fn test_part_2() -> Result<()> {
     const EXAMPLE_INPUT_2: &str = "\
-Part Two example input
+987654321111111
+811111111111119
+234234234234278
+818181911112111
 ";
 
-    const EXAMPLE_OUTPUT_2: &str = "Part Two example output";
+    const EXAMPLE_OUTPUT_2: u64 = 3121910778619;
 
     assert_eq!(solution_part_2(EXAMPLE_INPUT_2)?, EXAMPLE_OUTPUT_2);
 
