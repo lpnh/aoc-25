@@ -4,7 +4,9 @@ const PUZZLE_INPUT: &str = include_str!("../../puzzle_input/day_04.txt");
 
 #[cfg(feature = "part_1")]
 fn solution_part_1(input: &str) -> Result<usize> {
-    Ok(Diagram::from_input(input).rolls_of_paper_that_can_be_accessed())
+    let diagram = Diagram::from_input(input)?;
+
+    Ok(diagram.rolls_of_paper_that_can_be_accessed())
 }
 
 #[cfg(feature = "part_2")]
@@ -20,32 +22,33 @@ fn solution_part_2(input: &str) -> Result<String> {
 
 #[derive(Debug)]
 struct Diagram {
-    positions: Vec<Position>,
+    width: usize,
+    height: usize,
+    lines: Vec<Vec<Position>>,
 }
 
 impl Diagram {
-    fn from_input(input: &str) -> Self {
-        let positions: Vec<Position> = input
-            .lines()
-            .enumerate()
-            .flat_map(Position::from_line)
-            .collect();
-
-        Self { positions }
+    fn from_input(input: &str) -> Result<Self> {
+        Ok(Self {
+            width: input.find('\n').context("fail to find first line ending")?,
+            height: input.lines().count(),
+            lines: input.lines().enumerate().map(Position::from_line).collect(),
+        })
     }
 
     fn rolls_of_paper_that_can_be_accessed(&self) -> usize {
-        self.positions
+        self.lines
             .iter()
-            .filter(|p| p.contains_roll_of_paper && p.can_be_accessed(self.positions.clone()))
+            .flatten()
+            .filter(|p| p.contains_roll_of_paper && p.can_be_accessed(self))
             .count()
     }
 }
 
 #[derive(Debug, Clone)]
 struct Position {
-    x: isize,
-    y: isize,
+    x: usize,
+    y: usize,
     contains_roll_of_paper: bool,
 }
 
@@ -55,33 +58,52 @@ impl Position {
             .chars()
             .enumerate()
             .map(|(x, char)| Position {
-                x: x as isize,
-                y: line.0 as isize,
+                x,
+                y: line.0,
                 contains_roll_of_paper: char == '@',
             })
             .collect()
     }
 
-    fn adjacent_positions(&self) -> [(isize, isize); 8] {
-        [
-            (self.x - 1, self.y - 1),
-            (self.x, self.y - 1),
-            (self.x + 1, self.y - 1),
-            (self.x - 1, self.y),
-            (self.x + 1, self.y),
-            (self.x - 1, self.y + 1),
-            (self.x, self.y + 1),
-            (self.x + 1, self.y + 1),
-        ]
+    fn adjacent_positions(&self, diagram: &Diagram) -> [Option<(usize, usize)>; 8] {
+        let positions = [
+            // Above
+            (-1, -1),
+            (0, -1),
+            (1, -1),
+            // Left, Right
+            (-1, 0),
+            (1, 0),
+            // Bellow
+            (-1, 1),
+            (0, 1),
+            (1, 1),
+        ];
+
+        positions.map(|(px, py)| {
+            let x = self.x.checked_add_signed(px)?;
+            let y = self.y.checked_add_signed(py)?;
+
+            if x >= diagram.width || y >= diagram.height {
+                return None;
+            }
+
+            Some((x, y))
+        })
     }
 
-    fn can_be_accessed(&self, diagram: Vec<Position>) -> bool {
-        diagram
+    fn can_be_accessed(&self, diagram: &Diagram) -> bool {
+        let mut rolls_in_adjacent_position = 0;
+
+        self.adjacent_positions(diagram)
             .iter()
-            .filter(|p| self.adjacent_positions().contains(&(p.x, p.y)))
-            .filter(|p| p.contains_roll_of_paper)
-            .count()
-            < 4
+            .flatten()
+            .all(|&(px, py)| {
+                if diagram.lines[py][px].contains_roll_of_paper {
+                    rolls_in_adjacent_position += 1;
+                }
+                rolls_in_adjacent_position < 4
+            })
     }
 }
 
