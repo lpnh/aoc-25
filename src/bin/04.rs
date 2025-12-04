@@ -3,14 +3,8 @@ use anyhow::{Context, Result};
 const PUZZLE_INPUT: &str = include_str!("../../puzzle_input/day_04.txt");
 
 #[cfg(feature = "part_1")]
-fn solution_part_1(input: &str) -> Result<String> {
-    let result = input
-        .lines()
-        .next()
-        .context("missing first line")?
-        .replace("input", "output");
-
-    Ok(result)
+fn solution_part_1(input: &str) -> Result<usize> {
+    Ok(Diagram::from_input(input).rolls_of_paper_that_can_be_accessed())
 }
 
 #[cfg(feature = "part_2")]
@@ -22,6 +16,73 @@ fn solution_part_2(input: &str) -> Result<String> {
         .replace("input", "output");
 
     Ok(result)
+}
+
+#[derive(Debug)]
+struct Diagram {
+    positions: Vec<Position>,
+}
+
+impl Diagram {
+    fn from_input(input: &str) -> Self {
+        let positions: Vec<Position> = input
+            .lines()
+            .enumerate()
+            .flat_map(Position::from_line)
+            .collect();
+
+        Self { positions }
+    }
+
+    fn rolls_of_paper_that_can_be_accessed(&self) -> usize {
+        self.positions
+            .iter()
+            .filter(|p| p.contains_roll_of_paper && p.can_be_accessed(self.positions.clone()))
+            .count()
+    }
+}
+
+#[derive(Debug, Clone)]
+struct Position {
+    x: isize,
+    y: isize,
+    contains_roll_of_paper: bool,
+}
+
+impl Position {
+    fn from_line(line: (usize, &str)) -> Vec<Position> {
+        line.1
+            .chars()
+            .enumerate()
+            .map(|(x, char)| Position {
+                x: x as isize,
+                y: line.0 as isize,
+                contains_roll_of_paper: char == '@',
+            })
+            .collect()
+    }
+
+    fn adjacent_positions(&self) -> [(isize, isize); 8] {
+        [
+            (self.x - 1, self.y - 1),
+            (self.x, self.y - 1),
+            (self.x + 1, self.y - 1),
+            (self.x - 1, self.y),
+            (self.x + 1, self.y),
+            (self.x - 1, self.y + 1),
+            (self.x, self.y + 1),
+            (self.x + 1, self.y + 1),
+        ]
+    }
+
+    fn can_be_accessed(&self, diagram: Vec<Position>) -> bool {
+        diagram
+            .iter()
+            .filter(|p| self.adjacent_positions().contains(&(p.x, p.y)))
+            .filter(|p| p.contains_roll_of_paper)
+            .count()
+            < 4
+    }
 }
 
 fn main() -> Result<()> {
@@ -38,10 +99,19 @@ fn main() -> Result<()> {
 #[test]
 fn test_part_1() -> Result<()> {
     const EXAMPLE_INPUT_1: &str = "\
-Part One example input
+..@@.@@@@.
+@@@.@.@.@@
+@@@@@.@.@@
+@.@@@@..@.
+@@.@@@@.@@
+.@@@@@@@.@
+.@.@.@.@@@
+@.@@@.@@@@
+.@@@@@@@@.
+@.@.@@@.@.
 ";
 
-    const EXAMPLE_OUTPUT_1: &str = "Part One example output";
+    const EXAMPLE_OUTPUT_1: usize = 13;
 
     assert_eq!(solution_part_1(EXAMPLE_INPUT_1)?, EXAMPLE_OUTPUT_1);
 
