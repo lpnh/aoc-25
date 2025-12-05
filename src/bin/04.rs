@@ -10,14 +10,20 @@ fn solution_part_1(input: &str) -> Result<usize> {
 }
 
 #[cfg(feature = "part_2")]
-fn solution_part_2(input: &str) -> Result<String> {
-    let result = input
-        .lines()
-        .next()
-        .context("missing first line")?
-        .replace("input", "output");
+fn solution_part_2(input: &str) -> Result<usize> {
+    let mut diagram = Diagram::from_input(input)?;
 
-    Ok(result)
+    let mut removed_rolls = 0;
+
+    loop {
+        let rolls_of_paper = diagram.try_to_remove_rolls();
+        if rolls_of_paper == 0 {
+            break;
+        }
+        removed_rolls += rolls_of_paper;
+    }
+
+    Ok(removed_rolls)
 }
 
 #[derive(Debug)]
@@ -42,6 +48,23 @@ impl Diagram {
             .flatten()
             .filter(|p| p.contains_roll_of_paper && p.can_be_accessed(self))
             .count()
+    }
+
+    fn try_to_remove_rolls(&mut self) -> usize {
+        let mut removed = 0;
+
+        for py in 0..self.height {
+            for px in 0..self.width {
+                if self.lines[py][px].contains_roll_of_paper
+                    && self.lines[py][px].can_be_accessed(self)
+                {
+                    self.lines[py][px].contains_roll_of_paper = false;
+                    removed += 1;
+                }
+            }
+        }
+
+        removed
     }
 }
 
@@ -144,10 +167,19 @@ fn test_part_1() -> Result<()> {
 #[test]
 fn test_part_2() -> Result<()> {
     const EXAMPLE_INPUT_2: &str = "\
-Part Two example input
+..@@.@@@@.
+@@@.@.@.@@
+@@@@@.@.@@
+@.@@@@..@.
+@@.@@@@.@@
+.@@@@@@@.@
+.@.@.@.@@@
+@.@@@.@@@@
+.@@@@@@@@.
+@.@.@@@.@.
 ";
 
-    const EXAMPLE_OUTPUT_2: &str = "Part Two example output";
+    const EXAMPLE_OUTPUT_2: usize = 43;
 
     assert_eq!(solution_part_2(EXAMPLE_INPUT_2)?, EXAMPLE_OUTPUT_2);
 
