@@ -30,14 +30,30 @@ fn solution_part_1(input: &str) -> Result<i32> {
 }
 
 #[cfg(feature = "part_2")]
-fn solution_part_2(input: &str) -> Result<String> {
-    let result = input
-        .lines()
-        .next()
-        .context("missing first line")?
-        .replace("input", "output");
+fn solution_part_2(input: &str) -> Result<u64> {
+    let diagram = Diagram::from_input(input)?;
 
-    Ok(result)
+    let mut beam_path = vec![vec![0; diagram.width]; diagram.height];
+    beam_path[0][diagram.start] = 1;
+
+    for (i, line) in diagram.lines.iter().enumerate().skip(1) {
+        beam_path[i] = beam_path[i - 1].clone();
+
+        if let Some(splitters) = &line.splitters {
+            for &splitter in splitters {
+                if beam_path[i - 2][splitter] > 0 {
+                    let timelines = beam_path[i - 2][splitter];
+                    beam_path[i][splitter] = 0;
+                    beam_path[i][splitter - 1] += timelines;
+                    beam_path[i][splitter + 1] += timelines;
+                }
+            }
+        }
+    }
+
+    let timelines_count = beam_path[diagram.height - 1].iter().sum();
+
+    Ok(timelines_count)
 }
 
 #[derive(Debug)]
@@ -134,10 +150,25 @@ fn test_part_1() -> Result<()> {
 #[test]
 fn test_part_2() -> Result<()> {
     const EXAMPLE_INPUT_2: &str = "\
-Part Two example input
+.......S.......
+...............
+.......^.......
+...............
+......^.^......
+...............
+.....^.^.^.....
+...............
+....^.^...^....
+...............
+...^.^...^.^...
+...............
+..^...^.....^..
+...............
+.^.^.^.^.^...^.
+...............
 ";
 
-    const EXAMPLE_OUTPUT_2: &str = "Part Two example output";
+    const EXAMPLE_OUTPUT_2: u64 = 40;
 
     assert_eq!(solution_part_2(EXAMPLE_INPUT_2)?, EXAMPLE_OUTPUT_2);
 
